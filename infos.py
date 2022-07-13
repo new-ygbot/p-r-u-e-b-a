@@ -121,6 +121,7 @@ def createStat(username,userdata,isadmin):
     msgAdmin = 'NO'
     if isadmin:
         msgAdmin = 'YES'
+        return 
     msg+= 'Admin : ' + msgAdmin + '\n'
     proxy = 'NO'
     if userdata['proxy'] !='':
