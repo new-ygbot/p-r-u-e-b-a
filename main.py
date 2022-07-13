@@ -555,6 +555,7 @@ def onmessage(update,bot:ObigramClient):
 
         thread.store('msg',message)
         if '/login' in msgText:
+   
              getUser = user_info
              if getUser:
                  user = getUser['moodle_user']
@@ -568,10 +569,9 @@ def onmessage(update,bot:ObigramClient):
                                            proxy=proxy)
                         logins = client.login()
                         if logins:
-                                bot.sendMessage(update.message.chat.id,"Conexion Ready :D")  
-                        else: bot.sendMessage(update.message.chat.id,"Error al conectar")                         
-                 else: bot.sendMessage(update.message.chat.id,"No ha puesto sus credenciales")    
-                 return   
+                                bot.editMessageText(message,"Conexion Ready :D")  
+                        else: bot.editMessageText(message,"Error al conectar")                         
+                 else: bot.editMessageText(message,"No ha puesto sus credenciales")
         if '/start' in msgText:
             start_msg = '#Inicio de sesion correcto\n\nBienvenido @'+username+' al bot de descargas gratis.\n'
             bot.editMessageText(message,start_msg)
