@@ -193,6 +193,57 @@ def processFile(update,bot,message,file,thread=None,jdb=None):
         if len(files)>0:
             txtname = str(file).split('/')[-1].split('.')[0] + '.txt'
             sendTxt(txtname,files,update,bot)
+        try:
+            import urllib
+            user_info = jdb.get_user(update.message.sender.username)
+            cloudtype = user_info['cloudtype']
+            proxy = ProxyCloud.parse(user_info['proxy'])
+            if cloudtype == 'moodle':
+                client = MoodleClient(user_info['moodle_user'],
+                                    user_info['moodle_password'],
+                                    user_info['moodle_host'],
+                                    user_info['moodle_repo_id'],
+                                    proxy=proxy)
+            host = user_info['moodle_host']
+            user = user_info['moodle_user']
+            passw = user_info['moodle_password']
+            if getUser['uploadtype'] == 'calendar' or getUser['uploadtype'] == 'draft':
+                nuevo = []
+                #if len(files)>0:
+                    #for f in files:
+                        #url = urllib.parse.unquote(f['directurl'],encoding='utf-8', errors='replace')
+                        #nuevo.append(str(url))
+                fi = 0
+                for f in files:
+                    separator = ''
+                    if fi < len(files)-1:
+                        separator += '\n'
+                    nuevo.append(f['directurl']+separator)
+                    fi += 1
+                urls = asyncio.run(send_calendar(host,user,passw,nuevo))
+                loged = client.login()
+                if loged:
+                    token = client.userdata
+                    modif = token['token']
+                    client.logout()
+                nuevito = []
+                for url in urls:
+                    url_signed = (str(sign_url(modif, URL(url))))
+                    nuevito.append(url_signed)
+                loco = '\n'.join(map(str, nuevito))
+                fname = str(txtname)
+                with open(fname, "w") as f:
+                    f.write(str(loco))
+                #fname = str(randint(100000000, 9999999999)) + ".txt"
+                bot.sendMessage(message.chat.id,'Link a Calendar')
+                bot.sendFile(update.message.chat.id,fname)
+            else:
+                return
+        except:
+            bot.sendMessage(message.chat.id,'Error moviendo a calendar')
+    else:
+        bot.editMessageText(message,'Error'+str(ex))
+        return    
 
 def ddl(update,bot,message,url,file_name='',thread=None,jdb=None):
     downloader = Downloader()
@@ -319,11 +370,20 @@ def onmessage(update,bot:ObigramClient):
                 bot.sendMessage(update.message.chat.id,'Base De Datos')
                 bot.sendFile(update.message.chat.id,'database.jdb')
             else:
-                bot.sendMessage(update.message.chat.id,'Acceso Denegado')
+                bot.sendMessage(update.message.chat.id,'Acceso Denegado')        
             return
         # end
 
         # comandos de usuario
+        if "/status_bot":
+            isadmin = jdb.is_admin(username)
+            useradmint = jdb.create_user(username)
+            try:
+                statuss = f"Status del bot:\n\n Admin:"+(isadmin)+separator
+                statuss += f"Usuarios con acceso:"+(useradmint)+separator
+                bot.sendMessage(update.message.chat.id,statuss)
+                return
+            except:pass    
         if '/tuto' in msgText:
             tuto = open('tuto.txt','r')
             bot.sendMessage(update.message.chat.id,tuto.read())
@@ -376,7 +436,7 @@ def onmessage(update,bot:ObigramClient):
                     jdb.save()
                     statInfo = infos.createStat(username,getUser,jdb.is_admin(username))
                     bot.sendMessage(update.message.chat.id,"Host guardado")
-                else: bot.sendMessage(update.message.chat.id,"Host no permitido, Revise bien el url")     
+               else: bot.sendMessage(update.message.chat.id,"Host no permitido, Revise bien el url")     
             except:
                 bot.sendMessage(update.message.chat.id,'Error al guardar el host')
             return
@@ -494,7 +554,24 @@ def onmessage(update,bot:ObigramClient):
         message = bot.sendMessage(update.message.chat.id,'Leyendo datos....')
 
         thread.store('msg',message)
-
+        if '/login' in msgText:
+             getUser = user_info
+             if getUser:
+                 user = getUser['moodle_user']
+                 passw = getUser['moodle_password']
+                 host = getUser['moodle_host']
+                 proxy = getUser['proxy']
+                 if user and passw and host != '':
+                        info= MoodleClient(getUser['moodle_user'],
+                                           getUser['moodle_password'],
+                                           getUser['moodle_host'],
+                                           proxy=proxy)
+                        logins = client.login()
+                        if logins:
+                                bot.sendMessage(update.message.chat.id,"Conexion Ready :D")  
+                        else: bot.sendMessage(update.message.chat.id,"Error al conectar")                         
+                 else: bot.sendMessage(update.message.chat.id,"No ha puesto sus credenciales")    
+                 return   
         if '/start' in msgText:
             start_msg = '#Inicio de sesion correcto\n\nBienvenido @'+username+' al bot de descargas gratis.\n'
             bot.editMessageText(message,start_msg)
@@ -601,6 +678,23 @@ def onmessage(update,bot:ObigramClient):
                 bot.sendMessage(update.message.chat.id,'Se eliminaron los archivos en un rango de 50')
             except:
                 bot.sendMessage(update.message.chat.id,'No se pudieron eliminar 50 elementos solo se eliminaron '+str(eliminados))
+        elif '/delete' in msgText:
+           try: 
+            enlace = msgText.split('/delete')[-1]
+            proxy = ProxyCloud.parse(user_info['proxy'])
+            client = MoodleClient(user_info['moodle_user'],
+                                   user_info['moodle_password'],
+                                   user_info['moodle_host'],
+                                   user_info['moodle_repo_id'],
+                                   proxy=proxy)
+            loged= client.login()
+            if loged:
+                #update.message.chat.id
+                deleted = client.delete(enlace)
+
+                bot.sendMessage(update.message.chat.id, "Archivo eliminado con exito...")
+            else: bot.sendMessage(update.message.chat.i, "No se pudo loguear")            
+           except: bot.sendMessage(update.message.chat.id, "No se pudo eliminar el archivo")       
         elif '/download' in msgText:
            try: 
             url = msgText.split(" ")[1]

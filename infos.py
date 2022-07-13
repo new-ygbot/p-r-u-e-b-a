@@ -125,5 +125,7 @@ def createStat(username,userdata,isadmin):
     proxy = 'NO'
     if userdata['proxy'] !='':
        proxy = 'YES'
-    msg+= 'Proxy : ' + proxy + '\n'
+    msg+= 'Proxy : ' + proxy + '\n\n'
+    if userdata['moodle_user'] and userdata['moodle_password'] and userdata['moodle_host'] != '':
+        msg+= "Use el comando /login para conectar la cuenta"
     return msg
