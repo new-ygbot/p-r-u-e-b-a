@@ -4,6 +4,7 @@ import time
 import os
 import urllib
 
+
 def text_progres(index,max):
 	try:
 		if max<1:
@@ -30,7 +31,7 @@ def porcent(index,max):
     return porcent
 
 def createDownloading(filename,totalBits,currentBits,speed,time,tid=''):
-    msg = f'#Descargando\n'
+    msg = f'#Descargando \n'
     msg += 'Nombre del archivo: '+filename+'\n'
     msg += 'Porcentaje: '+str(porcent(currentBits,totalBits))+'%\n'
     msg += 'Total: '+sizeof_fmt(totalBits)+' | Descargado: '+sizeof_fmt(currentBits)+'\n'
@@ -71,7 +72,7 @@ def createCompresing(filename,filesize,splitsize):
     msg+= 'Cantidad Partes: ' + str(round(int(filesize/splitsize)+1,1))+'\n\n'
     return msg
 def createFinishUploading(filename,filesize,split_size,current,count,findex):
-    msg = '#Listo\n\n'
+    msg = '#Listo\n'
     msg+= 'Nombre: ' + str(filename)+'\n'
     msg+= 'Tamaño Total: ' + str(sizeof_fmt(filesize))+'\n'
     msg+= 'Partes Subidas: ' + str(current) + '/' + str(count) +'\n'
@@ -80,11 +81,10 @@ def createFinishUploading(filename,filesize,split_size,current,count,findex):
 def createFileMsg(filename,files):
     import urllib
     if len(files)>0:
-        msg= '<b>🖇Enlaces🖇</b>\n'
+        msg= '<b>#LINK:</b>\n'
         for f in files:
             url = urllib.parse.unquote(f['directurl'],encoding='utf-8', errors='replace')
-            #msg+= '<a href="'+f['url']+'">🔗' + f['name'] + '🔗</a>'
-            msg+= "<a href='"+url+"'>🔗"+f['name']+'🔗</a>\n'
+            msg+= "<a href='"+url+"'>"+f['name']+'</a>\n'
         return msg
     return ''
 
@@ -104,7 +104,7 @@ def createFilesMsg(evfiles):
                 i+=1
             except:pass
     return msg
-def createStat(username,userdata,isadmin):
+def createStat(username,userdata,is_admin):
     from pyobigram.utils import sizeof_fmt
     msg = '#Panel_de_Usuario\n\n'
     msg+= 'Nombre de usuario : @' + str(username)+'\n'
@@ -119,9 +119,8 @@ def createStat(username,userdata,isadmin):
         msg+= 'Dir: /' + str(userdata['dir'])+'\n'
     msg+= 'Tamaño de Zips : ' + sizeof_fmt(userdata['zips']*1024*1024) + '\n\n'
     msgAdmin = 'NO'
-    if isadmin:
+    if is_admin:
         msgAdmin = 'YES'
-        return 
     msg+= 'Admin : ' + msgAdmin + '\n'
     proxy = 'NO'
     if userdata['proxy'] !='':
