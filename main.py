@@ -251,9 +251,10 @@ def processFile(update,bot,message,file,thread=None,jdb=None):
             else:
                 return
         except:
-            bot.sendMessage(message.chat.id,'Error moviendo a calendar')
+            bot.sendMessage(message.chat.id,'Error moviendo a calendar'+str(ex))
     else:
         bot.editMessageText(message,'Error'+str(ex))
+        return
 
 def ddl(update,bot,message,url,file_name='',thread=None,jdb=None):
     downloader = Downloader()
@@ -377,8 +378,7 @@ def onmessage(update,bot:ObigramClient):
         if '/getdb' in msgText:
             isadmin = jdb.is_admin(username)
             if isadmin:
-                bot.sendMessage(update.message.chat.id,'Base De Datos')
-                bot.sendFile(update.message.chat.id,'database.jdb')
+                pass
             else:
                 bot.sendMessage(update.message.chat.id,'Acceso Denegado')        
             return
