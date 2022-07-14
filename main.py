@@ -29,7 +29,7 @@ def monitoreo(bot,message,update,thread,url = None):
    try:
     msg271 = bot.editMessageText(message,"Escaneando...") 
     r = requests.head(url)
-    if r.status_code == 200:
+    if r.status_code == 200 or r.status_code == 303:
          bot.editMessageText(msg271,f"Escaneo Completado:\n\n{url} is UP")    
 
     else:
