@@ -24,7 +24,7 @@ import S5Crypto
 import config
 
 
-group_id = config.groupid
+group_id = config.group_id
 
 
 
