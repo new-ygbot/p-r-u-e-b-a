@@ -505,7 +505,7 @@ class MoodleClient(object):
     def upload_file_calendar(self,file,progressfunc=None,args=(),tokenize=False):
             file_edit = f'{self.path}/calendar/managesubscriptions.php'
             #https://eduvirtual.uho.edu.cu/user/profile.php
-            resp = self.session.get(file_edit,proxies=self.proxy,headers=self.baseheaders)
+            resp = self.session.get(file_edit,proxies=self.proxy)
             soup = BeautifulSoup(resp.text, 'html.parser')
             sesskey = self.sesskey
             if self.sesskey=='':
@@ -518,12 +518,6 @@ class MoodleClient(object):
 
             of = open(file,'rb')
             b = uuid.uuid4().hex
-            try:
-                areamaxbyttes = query['areamaxbytes']
-                if areamaxbyttes=='0':
-                    areamaxbyttes = '-1'
-            except:
-                areamaxbyttes = '-1'
             upload_data = {
                 'title':(None,''),
                 'author':(None,'ObysoftDev'),
@@ -536,7 +530,7 @@ class MoodleClient(object):
                 'sesskey':(None,sesskey),
                 'client_id':(None,client_id),
                 'maxbytes':(None,query['maxbytes']),
-                'areamaxbytes':(None,areamaxbyttes),
+                'areamaxbytes':(None,query['maxbytes']),
                 'ctx_id':(None,query['ctx_id']),
                 'savepath':(None,'/')}
             upload_file = {
@@ -548,21 +542,17 @@ class MoodleClient(object):
             progrescall = CallingUpload(progressfunc,file,args)
             callback = partial(progrescall)
             monitor = MultipartEncoderMonitor(encoder,callback=callback)
-            resp2 = self.session.post(post_file_url,data=monitor,headers={"Content-Type": "multipart/form-data; boundary="+b,**self.baseheaders},proxies=self.proxy)
+            resp2 = self.session.post(post_file_url,data=monitor,headers={"Content-Type": "multipart/form-data; boundary="+b},proxies=self.proxy)
             of.close()
             
             data = self.parsejson(resp2.text)
             data['url'] = str(data['url']).replace('\\','')
-           
-            event = self.createNewEvent(data)
-
-            if event:
-                if len(event)>0:
-                    html = event[0]['data']['event']['description']
-                    soup = BeautifulSoup(html, 'html.parser')
-                    data['url'] = soup.find('a')['href']
-
-            data['normalurl'] = data['url']
+            if self.userdata:
+                if 'token' in self.userdata and not tokenize:
+                    data['url'] = str(data['url']).replace('pluginfile.php/','webservice/pluginfile.php/') + '?token=' + self.userdata['token']
+                if tokenize:
+                    data['url'] = self.host_tokenize + S5Crypto.encrypt(data['url']) + '/' + self.userdata['s5token']
+            return None,data
 
             if self.userdata:
                 if 'token' in self.userdata and not tokenize:

