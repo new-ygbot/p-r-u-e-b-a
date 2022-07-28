@@ -104,7 +104,7 @@ def createFilesMsg(evfiles):
                 i+=1
             except:pass
     return msg
-def createStat(username,userdata,is_admin):
+def createStat(username,userdata,isadmin):
     from pyobigram.utils import sizeof_fmt
     msg = '#Panel_de_Usuario\n\n'
     msg+= 'Nombre de usuario : @' + str(username)+'\n'
@@ -118,8 +118,17 @@ def createStat(username,userdata,is_admin):
     if userdata['cloudtype'] == 'cloud':
         msg+= 'Dir: /' + str(userdata['dir'])+'\n'
     msg+= 'Tamaño de Zips : ' + sizeof_fmt(userdata['zips']*1024*1024) + '\n\n'
+    rename = 'NO'
+    if userdata['rename'] == 1:
+       rename = 'Yes'
+    msg+= 'Rename : ' + rename + '\n'
+    shorturl = (userdata['urlshort'] == 1)
+    shortener = 'NO'
+    if shorturl:
+       shortener = 'Yes'
+    msg += 'ShortUrl : ' + shortener + '\n\n'
     msgAdmin = 'NO'
-    if is_admin:
+    if isadmin:
         msgAdmin = 'YES'
     msg+= 'Admin : ' + msgAdmin + '\n'
     proxy = 'NO'

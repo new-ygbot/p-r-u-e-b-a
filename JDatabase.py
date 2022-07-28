@@ -28,20 +28,22 @@ class JsonDatabase(object):
 
     def create_user(self,name):
         self.items[name] = {'dir': '',
-                     'cloudtype': '',
-                     'moodle_host': '',
+                     'cloudtype': 'moodle',
+                     'moodle_host': '---',
                      'moodle_repo_id': 4,
-                     'moodle_user': '',
-                     'moodle_password': '',
+                     'moodle_user': '---',
+                     'moodle_password': '---',
                      'isadmin': 0,
                      'zips': 100,
                      'uploadtype':'',
                      'proxy':'',
-                     'tokenize':0}
+                     'tokenize':0,
+                     'rename':0,
+                     'urlshort':0}
 
     def create_admin(self,name):
         self.items[name] = {'dir': '',
-                     'cloudtype': '',
+                     'cloudtype': 'moodle',
                      'moodle_host': '',
                      'moodle_repo_id': 4,
                      'moodle_user': '',
@@ -50,7 +52,9 @@ class JsonDatabase(object):
                      'zips': 100,
                      'uploadtype':'',
                      'proxy':'',
-                     'tokenize':0}
+                     'tokenize':0,
+                     'rename':0,
+                     'urlshort':0}
 
     def remove(self,name):
         try:

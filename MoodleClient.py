@@ -15,6 +15,8 @@ from ProxyCloud import ProxyCloud
 import socket
 import socks
 import asyncio
+from draft_to_calendar import send_calendar
+
 
 import threading
 
@@ -31,19 +33,17 @@ class CallingUpload:
                     self.speed = 0
                     self.last_read_byte = 0
                 def __call__(self,monitor):
-                    try:
-                        self.speed += monitor.bytes_read - self.last_read_byte
-                        self.last_read_byte = monitor.bytes_read
-                        tcurrent = time.time() - self.time_start
-                        self.time_total += tcurrent
-                        self.time_start = time.time()
-                        if self.time_total>=1:
-                                clock_time = (monitor.len - monitor.bytes_read) / (self.speed)
-                                if self.func:
-                                    self.func(self.filename,monitor.bytes_read,monitor.len,self.speed,clock_time,self.args)
-                                self.time_total = 0
-                                self.speed = 0
-                    except:pass
+                    self.speed += monitor.bytes_read - self.last_read_byte
+                    self.last_read_byte = monitor.bytes_read
+                    tcurrent = time.time() - self.time_start
+                    self.time_total += tcurrent
+                    self.time_start = time.time()
+                    if self.time_total>=1:
+                            clock_time = (monitor.len - monitor.bytes_read) / (self.speed)
+                            if self.func:
+                                self.func(self.filename,monitor.bytes_read,monitor.len,self.speed,clock_time,self.args)
+                            self.time_total = 0
+                            self.speed = 0
 
 class MoodleClient(object):
     def __init__(self, user,passw,host='',repo_id=4,proxy:ProxyCloud=None):
@@ -69,7 +69,7 @@ class MoodleClient(object):
     def getUserData(self):
         try:
             tokenUrl = self.path+'login/token.php?service=moodle_mobile_app&username='+urllib.parse.quote(self.username)+'&password='+urllib.parse.quote(self.password)
-            resp = self.session.get(tokenUrl,proxies=self.proxy,headers=self.baseheaders)
+            resp = self.session.get(tokenUrl,proxies=self.proxy)
             data = self.parsejson(resp.text)
             data['s5token'] = S5Crypto.tokenize([self.username,self.password])
             return data
@@ -83,7 +83,7 @@ class MoodleClient(object):
 
     def getSessKey(self):
         fileurl = self.path + 'my/#'
-        resp = self.session.get(fileurl,proxies=self.proxy,headers=self.baseheaders)
+        resp = self.session.get(fileurl,proxies=self.proxy)
         soup = BeautifulSoup(resp.text,'html.parser')
         sesskey  =  soup.find('input',attrs={'name':'sesskey'})['value']
         return sesskey
@@ -91,7 +91,7 @@ class MoodleClient(object):
     def login(self):
         try:
             login = self.path+'login/index.php'
-            resp = self.session.get(login,proxies=self.proxy,headers=self.baseheaders)
+            resp = self.session.get(login,proxies=self.proxy)
             cookie = resp.cookies.get_dict()
             soup = BeautifulSoup(resp.text,'html.parser')
             anchor = ''
@@ -157,6 +157,14 @@ class MoodleClient(object):
         evidenceid = str(resp.url).split('?')[1].split('=')[1]
 
         return {'name':name,'desc':desc,'id':evidenceid,'url':resp.url,'files':[]}
+    
+    def createNewEvent(self,filedata):
+        eventposturl = f'{self.path}lib/ajax/service.php?sesskey='+self.sesskey+'&info=core_calendar_submit_create_update_form'
+        jsondatastr = '[{"index":0,"methodname":"core_calendar_submit_create_update_form","args":{"formdata":"id=0&userid='+self.userid+'&modulename=&instance=0&visible=1&eventtype=user&sesskey='+self.sesskey+'&_qf__core_calendar_local_event_forms_create=1&mform_showmore_id_general=1&name=fileev&timestart%5Bday%5D=8&timestart%5Bmonth%5D=5&timestart%5Byear%5D=2022&timestart%5Bhour%5D=12&timestart%5Bminute%5D=26&description%5Btext%5D=%3Cp%20dir%3D%22ltr%22%20style%3D%22text-align%3A%20left%3B%22%3E%3Ca%20href%3D%22'+filedata['url']+'%22%3E'+filedata['file']+'%3C%2Fa%3E%3Cbr%3E%3C%2Fp%3E&description%5Bformat%5D=1&description%5Bitemid%5D=676908753&location=&duration=0"}}]'
+        jsondata = json.loads(jsondatastr)
+        resp = self.session.post(eventposturl,json=jsondata,headers=self.baseheaders)
+        data = json.loads(resp.text)
+        return data
 
     def createBlog(self,name,itemid,desc="<p+dir=\"ltr\"+style=\"text-align:+left;\">asd<br></p>"):
         post_attach = f'{self.path}blog/edit.php?action=add&userid='+self.userid
@@ -183,13 +191,6 @@ class MoodleClient(object):
         resp = self.session.post(post_url,data=payload,proxies=self.proxy,headers=self.baseheaders)
         return resp
 
-    def createNewEvent(self,filedata):
-        eventposturl = f'{self.path}lib/ajax/service.php?sesskey='+self.sesskey+'&info=core_calendar_submit_create_update_form'
-        jsondatastr = '[{"index":0,"methodname":"core_calendar_submit_create_update_form","args":{"formdata":"id=0&userid='+self.userid+'&modulename=&instance=0&visible=1&eventtype=user&sesskey='+self.sesskey+'&_qf__core_calendar_local_event_forms_create=1&mform_showmore_id_general=1&name=fileev&timestart%5Bday%5D=8&timestart%5Bmonth%5D=5&timestart%5Byear%5D=2022&timestart%5Bhour%5D=12&timestart%5Bminute%5D=26&description%5Btext%5D=%3Cp%20dir%3D%22ltr%22%20style%3D%22text-align%3A%20left%3B%22%3E%3Ca%20href%3D%22'+filedata['url']+'%22%3E'+filedata['file']+'%3C%2Fa%3E%3Cbr%3E%3C%2Fp%3E&description%5Bformat%5D=1&description%5Bitemid%5D=676908753&location=&duration=0"}}]'
-        jsondata = json.loads(jsondatastr)
-        resp = self.session.post(eventposturl,json=jsondata,headers=self.baseheaders)
-        data = json.loads(resp.text)
-        return data
 
 
     def saveEvidence(self,evidence):
@@ -241,8 +242,8 @@ class MoodleClient(object):
         deleteUrl = self.path+'lib/ajax/service.php?sesskey='+sesskey+'&info=core_competency_delete_user_evidence,tool_lp_data_for_user_evidence_list_page'
         savejson = [{"index":0,"methodname":"core_competency_delete_user_evidence","args":{"id":evidence['id']}},
                     {"index":1,"methodname":"tool_lp_data_for_user_evidence_list_page","args":{"userid":self.userid }}]
-        headers = {'Content-type': 'application/json', 'Accept': 'application/json, text/javascript, */*; q=0.01',**self.baseheaders}
-        resp = self.session.post(deleteUrl, json=savejson,headers=headers,proxies=self.proxy)
+        headers = {'Content-type': 'application/json', 'Accept': 'application/json, text/javascript, */*; q=0.01'}
+        resp = self.session.post(deleteUrl, json=savejson,headers=self.baseheaders,proxies=self.proxy)
         pass
 
 
@@ -265,12 +266,6 @@ class MoodleClient(object):
 
             of = open(file,'rb')
             b = uuid.uuid4().hex
-            try:
-                areamaxbyttes = query['areamaxbytes']
-                if areamaxbyttes=='0':
-                    areamaxbyttes = '-1'
-            except:
-                areamaxbyttes = '-1'
             upload_data = {
                 'title':(None,''),
                 'author':(None,'ObysoftDev'),
@@ -283,7 +278,7 @@ class MoodleClient(object):
                 'sesskey':(None,sesskey),
                 'client_id':(None,client_id),
                 'maxbytes':(None,query['maxbytes']),
-                'areamaxbytes':(None,areamaxbyttes),
+                'areamaxbytes':(None,query['areamaxbytes']),
                 'ctx_id':(None,query['ctx_id']),
                 'savepath':(None,'/')}
             upload_file = {
@@ -295,7 +290,7 @@ class MoodleClient(object):
             progrescall = CallingUpload(progressfunc,file,args)
             callback = partial(progrescall)
             monitor = MultipartEncoderMonitor(encoder,callback=callback)
-            resp2 = self.session.post(post_file_url,data=monitor,headers={"Content-Type": "multipart/form-data; boundary="+b,**self.baseheaders},proxies=self.proxy)
+            resp2 = self.session.post(post_file_url,data=monitor,headers=self.baseheaders,proxies=self.proxy)
             of.close()
 
             #save evidence
@@ -304,11 +299,10 @@ class MoodleClient(object):
 
             data = self.parsejson(resp2.text)
             data['url'] = str(data['url']).replace('\\','')
-            data['normalurl'] = data['url']
             if self.userdata:
                 if 'token' in self.userdata and not tokenize:
                     name = str(data['url']).split('/')[-1]
-                    data['url'] = self.path+'webservice/pluginfile.php/'+query['ctx_id']+'/core_competency/userevidence/'+evidence['id']+'/'+name+'?token='+self.userdata['token']
+                    data['url'] = self.path+'webservice/pluginfile.php/'+query['ctx_id']+'/core_competency/userevidence/'+evidence['id']+'/'+name
                 if tokenize:
                     data['url'] = self.host_tokenize + S5Crypto.encrypt(data['url']) + '/' + self.userdata['s5token']
             return itempostid,data
@@ -333,12 +327,6 @@ class MoodleClient(object):
 
             of = open(file,'rb')
             b = uuid.uuid4().hex
-            try:
-                areamaxbyttes = query['areamaxbytes']
-                if areamaxbyttes=='0':
-                    areamaxbyttes = '-1'
-            except:
-                areamaxbyttes = '-1'
             upload_data = {
                 'title':(None,''),
                 'author':(None,'ObysoftDev'),
@@ -351,7 +339,7 @@ class MoodleClient(object):
                 'sesskey':(None,sesskey),
                 'client_id':(None,client_id),
                 'maxbytes':(None,query['maxbytes']),
-                'areamaxbytes':(None,areamaxbyttes),
+                'areamaxbytes':(None,query['areamaxbytes']),
                 'ctx_id':(None,query['ctx_id']),
                 'savepath':(None,'/')}
             upload_file = {
@@ -363,15 +351,14 @@ class MoodleClient(object):
             progrescall = CallingUpload(progressfunc,file,args)
             callback = partial(progrescall)
             monitor = MultipartEncoderMonitor(encoder,callback=callback)
-            resp2 = self.session.post(post_file_url,data=monitor,headers={"Content-Type": "multipart/form-data; boundary="+b,**self.baseheaders},proxies=self.proxy)
+            resp2 = self.session.post(post_file_url,data=monitor,headers={"Content-Type": "multipart/form-data; boundary="+b},proxies=self.proxy)
             of.close()
 
             data = self.parsejson(resp2.text)
             data['url'] = str(data['url']).replace('\\','')
-            data['normalurl'] = data['url']
             if self.userdata:
                 if 'token' in self.userdata and not tokenize:
-                    data['url'] = str(data['url']).replace('pluginfile.php/','webservice/pluginfile.php/') + '?token=' + self.userdata['token']
+                    data['url'] = str(data['url']).replace('pluginfile.php/','webservice/pluginfile.php/')
                 if tokenize:
                     data['url'] = self.host_tokenize + S5Crypto.encrypt(data['url']) + '/' + self.userdata['s5token']
             return itempostid,data
@@ -462,9 +449,6 @@ class MoodleClient(object):
 
             of = open(file,'rb')
             b = uuid.uuid4().hex
-            areamaxbyttes = query['areamaxbytes']
-            if areamaxbyttes=='0':
-                areamaxbyttes = '-1'
             upload_data = {
                 'title':(None,''),
                 'author':(None,'ObysoftDev'),
@@ -477,7 +461,7 @@ class MoodleClient(object):
                 'sesskey':(None,sesskey),
                 'client_id':(None,client_id),
                 'maxbytes':(None,query['maxbytes']),
-                'areamaxbytes':(None,areamaxbyttes),
+                'areamaxbytes':(None,query['areamaxbytes']),
                 'ctx_id':(None,query['ctx_id']),
                 'savepath':(None,'/')}
             upload_file = {
@@ -489,15 +473,14 @@ class MoodleClient(object):
             progrescall = CallingUpload(progressfunc,file,args)
             callback = partial(progrescall)
             monitor = MultipartEncoderMonitor(encoder,callback=callback)
-            resp2 = self.session.post(post_file_url,data=monitor,headers={"Content-Type": "multipart/form-data; boundary="+b,**self.baseheaders},proxies=self.proxy)
+            resp2 = self.session.post(post_file_url,data=monitor,headers={"Content-Type": "multipart/form-data; boundary="+b},proxies=self.proxy)
             of.close()
             
             data = self.parsejson(resp2.text)
             data['url'] = str(data['url']).replace('\\','')
-            data['normalurl'] = data['url']
             if self.userdata:
                 if 'token' in self.userdata and not tokenize:
-                    data['url'] = str(data['url']).replace('pluginfile.php/','webservice/pluginfile.php/') + '?token=' + self.userdata['token']
+                    data['url'] = str(data['url']).replace('pluginfile.php/','webservice/pluginfile.php/')
                 if tokenize:
                     data['url'] = self.host_tokenize + S5Crypto.encrypt(data['url']) + '/' + self.userdata['s5token']
             return None,data
@@ -505,7 +488,7 @@ class MoodleClient(object):
     def upload_file_calendar(self,file,progressfunc=None,args=(),tokenize=False):
             file_edit = f'{self.path}/calendar/managesubscriptions.php'
             #https://eduvirtual.uho.edu.cu/user/profile.php
-            resp = self.session.get(file_edit,proxies=self.proxy)
+            resp = self.session.get(file_edit,proxies=self.proxy,headers=self.baseheaders)
             soup = BeautifulSoup(resp.text, 'html.parser')
             sesskey = self.sesskey
             if self.sesskey=='':
@@ -547,13 +530,19 @@ class MoodleClient(object):
             
             data = self.parsejson(resp2.text)
             data['url'] = str(data['url']).replace('\\','')
-            if self.userdata:
-                if 'token' in self.userdata and not tokenize:
-                    data['url'] = str(data['url']).replace('pluginfile.php/','webservice/pluginfile.php/') + '?token=' + self.userdata['token']
-                if tokenize:
-                    data['url'] = self.host_tokenize + S5Crypto.encrypt(data['url']) + '/' + self.userdata['s5token']
-            return None,data
-
+            nuevo = []
+            try:
+                if self.proxy == None:
+                    proxyto = "" 
+                else:
+                    proxyto = str(self.proxy['http'])
+                nuevo.append(data['url'])
+                print(proxyto)
+                loco = asyncio.run(send_calendar(self.path,self.username,self.password,nuevo,proxyto))
+                data['url'] = str(loco[0])
+            except Exception as ex:
+                print(str(ex))
+            data['normalurl'] = data['url']
             if self.userdata:
                 if 'token' in self.userdata and not tokenize:
                     data['url'] = str(data['url']).replace('pluginfile.php/','webservice/pluginfile.php/') + '?token=' + self.userdata['token']
@@ -588,7 +577,7 @@ class MoodleClient(object):
 
     def getFiles(self):
         urlfiles = self.path+'user/files.php'
-        resp = self.session.get(urlfiles,proxies=self.proxy,headers=self.baseheaders)
+        resp = self.session.get(urlfiles,proxies=self.proxy)
         soup = BeautifulSoup(resp.text,'html.parser')
         sesskey  =  soup.find('input',attrs={'name':'sesskey'})['value']
         client_id = self.getclientid(resp.text)
@@ -596,14 +585,14 @@ class MoodleClient(object):
         query = self.extractQuery(soup.find('object',attrs={'type':'text/html'})['data'])
         payload = {'sesskey': sesskey, 'client_id': client_id,'filepath': filepath, 'itemid': query['itemid']}
         postfiles = self.path+'repository/draftfiles_ajax.php?action=list'
-        resp = self.session.post(postfiles,data=payload,proxies=self.proxy,headers=self.baseheaders)
+        resp = self.session.post(postfiles,data=payload,proxies=self.proxy)
         dec = json.JSONDecoder()
         jsondec = dec.decode(resp.text)
         return jsondec['list']
    
     def delteFile(self,name):
         urlfiles = self.path+'user/files.php'
-        resp = self.session.get(urlfiles,proxies=self.proxy,headers=self.baseheaders)
+        resp = self.session.get(urlfiles,proxies=self.proxy)
         soup = BeautifulSoup(resp.text,'html.parser')
         _qf__core_user_form_private_files = soup.find('input',{'name':'_qf__core_user_form_private_files'})['value']
         files_filemanager = soup.find('input',attrs={'name':'files_filemanager'})['value']
@@ -613,16 +602,21 @@ class MoodleClient(object):
         query = self.extractQuery(soup.find('object',attrs={'type':'text/html'})['data'])
         payload = {'sesskey': sesskey, 'client_id': client_id,'filepath': filepath, 'itemid': query['itemid'],'filename':name}
         postdelete = self.path+'repository/draftfiles_ajax.php?action=delete'
-        resp = self.session.post(postdelete,data=payload,proxies=self.proxy,headers=self.baseheaders)
+        resp = self.session.post(postdelete,data=payload,proxies=self.proxy)
 
         #save file
         saveUrl = self.path+'lib/ajax/service.php?sesskey='+sesskey+'&info=core_form_dynamic_form'
         savejson = [{"index":0,"methodname":"core_form_dynamic_form","args":{"formdata":"sesskey="+sesskey+"&_qf__core_user_form_private_files="+_qf__core_user_form_private_files+"&files_filemanager="+query['itemid']+"","form":"core_user\\form\\private_files"}}]
-        headers = {'Content-type': 'application/json', 'Accept': 'application/json, text/javascript, */*; q=0.01',**self.baseheaders}
+        headers = {'Content-type': 'application/json', 'Accept': 'application/json, text/javascript, */*; q=0.01'}
         resp3 = self.session.post(saveUrl, json=savejson,headers=headers,proxies=self.proxy)
 
         return resp3
 
     def logout(self):
         logouturl = self.path + 'login/logout.php?sesskey=' + self.sesskey
-        self.session.post(logouturl,proxies=self.proxy,headers=self.baseheaders)
+        self.session.post(logouturl,proxies=self.proxy)
+    
+
+
+client = MoodleClient('arley.medinab','JSAVH.2954','http://moodle.upr.edu.cu/',repo_id=5)
+loged = client.login()
