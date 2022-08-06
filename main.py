@@ -648,13 +648,8 @@ def onmessage(update,bot:ObigramClient):
            try:
             getUser = user_info
             rename = getUser['rename'] 
-            if rename == 1:
-             newname = name
-             url = msgText.split(" ")[1]
-             ddl(update,bot,message,url,file_name=newname,thread=thread,jdb=jdb)
-            else: 
-                url = msgText.split(" ")[1]
-                ddl(update,bot,message,url,file_name='',thread=thread,jdb=jdb,username=username)
+            url = msgText.split(" ")[1]
+            ddl(update,bot,message,url,file_name='',thread=thread,jdb=jdb,username=username)
            except Exception as ex:
             bot.editMessageText(message,"Error al intentar bajar el archivo"+str(ex))
     except Exception as ex:
