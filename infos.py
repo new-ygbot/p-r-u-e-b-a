@@ -5,6 +5,8 @@ import os
 import urllib
 
 
+
+
 def text_progres(index,max):
 	try:
 		if max<1:

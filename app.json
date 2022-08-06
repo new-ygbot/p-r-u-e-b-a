@@ -1,15 +1,12 @@
-
 {
-  "name": "LInk direct",
-  "description": "a",
+  "name": "TGUploaderPro",
+  "description": "Bot De Telegram : TGUploaderPro v7.0 Fixed , Descargador gratis de contenido desde internet a hacia moodles , nexcloud en cuba",
+  "repository": "https://github.com/ObisoftDev/tguploaderpro", 
   "env": {
-    "administrador": {
-      "description": "El Usuario DE Telegram Q Va A ADministrar El Bot",
-      "value": ""
-    },
     "bot_token": {
-      "description": "El token del bot",
-      "value": ""
+      "description": "El token del bot"
+    },"tl_admin_user": {
+      "description": "usuarion administrador del bote de telegram","value":"*"
     }
   }
 }

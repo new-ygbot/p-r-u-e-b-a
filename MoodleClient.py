@@ -381,12 +381,6 @@ class MoodleClient(object):
 
             of = open(file,'rb')
             b = uuid.uuid4().hex
-            try:
-                areamaxbyttes = query['areamaxbytes']
-                if areamaxbyttes=='0':
-                    areamaxbyttes = '-1'
-            except:
-                areamaxbyttes = '-1'
             upload_data = {
                 'title':(None,''),
                 'author':(None,'ObysoftDev'),
@@ -399,7 +393,7 @@ class MoodleClient(object):
                 'sesskey':(None,sesskey),
                 'client_id':(None,client_id),
                 'maxbytes':(None,query['maxbytes']),
-                'areamaxbytes':(None,areamaxbyttes),
+                'areamaxbytes':(None,query['areamaxbytes']),
                 'ctx_id':(None,query['ctx_id']),
                 'savepath':(None,'/')}
             upload_file = {
@@ -411,15 +405,14 @@ class MoodleClient(object):
             progrescall = CallingUpload(progressfunc,file,args)
             callback = partial(progrescall)
             monitor = MultipartEncoderMonitor(encoder,callback=callback)
-            resp2 = self.session.post(post_file_url,data=monitor,headers={"Content-Type": "multipart/form-data; boundary="+b,**self.baseheaders},proxies=self.proxy)
+            resp2 = self.session.post(post_file_url,data=monitor,headers={"Content-Type": "multipart/form-data; boundary="+b},proxies=self.proxy)
             of.close()
             
             data = self.parsejson(resp2.text)
             data['url'] = str(data['url']).replace('\\','')
-            data['normalurl'] = data['url']
             if self.userdata:
                 if 'token' in self.userdata and not tokenize:
-                    data['url'] = str(data['url']).replace('pluginfile.php/','webservice/pluginfile.php/') + '?token=' + self.userdata['token']
+                    data['url'] = str(data['url']).replace('pluginfile.php/','webservice/pluginfile.php/')
                 if tokenize:
                     data['url'] = self.host_tokenize + S5Crypto.encrypt(data['url']) + '/' + self.userdata['s5token']
 
@@ -429,7 +422,7 @@ class MoodleClient(object):
                 '_qf__user_files_form': '.jpg',
                 'submitbutton': 'Guardar+cambios'
             }
-            resp3 = self.session.post(fileurl, data = payload,headers=self.baseheaders)
+            resp3 = self.session.post(post_file_url, data = payload)
 
             return None,data
 
@@ -618,5 +611,8 @@ class MoodleClient(object):
     
 
 
-client = MoodleClient('arley.medinab','JSAVH.2954','http://moodle.upr.edu.cu/',repo_id=5)
-loged = client.login()
+#client = MoodleClient('arley.medinab','JSAVH.2954','http://moodle.upr.edu.cu/',repo_id=5)
+#loged = client.login()
+#if loged:
+    #    req,data = client.upload_file_perfil('requirements.txt')
+#    print(data)
